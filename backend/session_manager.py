@@ -1,66 +1,70 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, List, Optional
 
 
 @dataclass
-class Message:
-    """Represents a single message in a conversation"""
+class SessionData:
+    """Stores summary-based context and metadata for a session"""
 
-    role: str  # "user" or "assistant"
-    content: str  # The message content
+    summary: str      # rolling summary of the conversation
+    title: str        # first user message, truncated to 50 chars
+    created_at: str   # ISO format timestamp
 
 
 class SessionManager:
-    """Manages conversation sessions and message history"""
+    """Manages conversation sessions using rolling summaries"""
 
-    def __init__(self, max_history: int = 5):
-        self.max_history = max_history
-        self.sessions: Dict[str, List[Message]] = {}
+    def __init__(self):
+        self.sessions: Dict[str, SessionData] = {}
         self.session_counter = 0
 
     def create_session(self) -> str:
         """Create a new conversation session"""
         self.session_counter += 1
         session_id = f"session_{self.session_counter}"
-        self.sessions[session_id] = []
+        self.sessions[session_id] = SessionData(
+            summary="",
+            title="New Chat",
+            created_at=datetime.now().isoformat(),
+        )
         return session_id
 
-    def add_message(self, session_id: str, role: str, content: str):
-        """Add a message to the conversation history"""
-        if session_id not in self.sessions:
-            self.sessions[session_id] = []
+    def set_title(self, session_id: str, title: str):
+        """Set the display title for a session (called on first user message)"""
+        if session_id in self.sessions:
+            self.sessions[session_id].title = title
 
-        message = Message(role=role, content=content)
-        self.sessions[session_id].append(message)
-
-        # Keep conversation history within limits
-        if len(self.sessions[session_id]) > self.max_history * 2:
-            self.sessions[session_id] = self.sessions[session_id][
-                -self.max_history * 2 :
-            ]
-
-    def add_exchange(self, session_id: str, user_message: str, assistant_message: str):
-        """Add a complete question-answer exchange"""
-        self.add_message(session_id, "user", user_message)
-        self.add_message(session_id, "assistant", assistant_message)
+    def update_summary(self, session_id: str, new_summary: str):
+        """Store an updated conversation summary for a session"""
+        if session_id in self.sessions:
+            self.sessions[session_id].summary = new_summary
 
     def get_conversation_history(self, session_id: Optional[str]) -> Optional[str]:
-        """Get formatted conversation history for a session"""
+        """Get the conversation summary for a session, or None if empty"""
         if not session_id or session_id not in self.sessions:
             return None
+        summary = self.sessions[session_id].summary
+        return summary if summary else None
 
-        messages = self.sessions[session_id]
-        if not messages:
-            return None
+    def get_all_sessions(self) -> List[Dict]:
+        """Return metadata for all sessions that have at least one exchange"""
+        return [
+            {
+                "session_id": sid,
+                "title": data.title,
+                "created_at": data.created_at,
+                "summary": data.summary,
+            }
+            for sid, data in self.sessions.items()
+            if data.summary  # only sessions with at least one completed exchange
+        ]
 
-        # Format messages for context
-        formatted_messages = []
-        for msg in messages:
-            formatted_messages.append(f"{msg.role.title()}: {msg.content}")
-
-        return "\n".join(formatted_messages)
+    def delete_session(self, session_id: str):
+        """Remove a session entirely"""
+        self.sessions.pop(session_id, None)
 
     def clear_session(self, session_id: str):
-        """Clear all messages from a session"""
+        """Reset the summary for a session without deleting it"""
         if session_id in self.sessions:
-            self.sessions[session_id] = []
+            self.sessions[session_id].summary = ""

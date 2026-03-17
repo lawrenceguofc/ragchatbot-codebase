@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Course Materials Assistant</title>
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <div class="container">
@@ -42,6 +42,16 @@
                 <!-- New Chat Button -->
                 <div class="sidebar-section">
                     <button id="newChatButton" class="new-chat-button">+ NEW CHAT</button>
+                </div>
+
+                <!-- Past Chats -->
+                <div class="sidebar-section">
+                    <details class="chats-collapsible" open>
+                        <summary class="chats-header">Recent Chats</summary>
+                        <div class="past-chats-list" id="pastChatsList">
+                            <span class="no-chats">No past chats yet</span>
+                        </div>
+                    </details>
                 </div>
 
                 <!-- Course Stats -->
@@ -101,6 +111,6 @@
 
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="script.js?v=9"></script>
+    <script src="script.js?v=11"></script>
 </body>
 </html>

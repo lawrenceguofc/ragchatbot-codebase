@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton, themeToggle;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton, themeToggle, pastChatsListEl;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,11 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
     courseTitles = document.getElementById('courseTitles');
     newChatButton = document.getElementById('newChatButton');
     themeToggle = document.getElementById('themeToggle');
-    
+    pastChatsListEl = document.getElementById('pastChatsList');
+
     setupEventListeners();
     initializeTheme();
     createNewSession();
     loadCourseStats();
+    loadPastChats();
 });
 
 // Event Listeners
@@ -99,6 +101,7 @@ async function sendMessage() {
         // Replace loading message with response
         loadingMessage.remove();
         addMessage(data.answer, 'assistant', data.sources, data.source_links);
+        loadPastChats();
 
     } catch (error) {
         // Replace loading message with error
@@ -173,26 +176,9 @@ function escapeHtml(text) {
 // Removed removeMessage function - no longer needed since we handle loading differently
 
 async function startNewChat() {
-    // Clear the current session on backend if exists
-    if (currentSessionId) {
-        try {
-            await fetch(`${API_URL}/clear-session`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: currentSessionId
-                })
-            });
-        } catch (error) {
-            console.error('Error clearing session:', error);
-            // Continue with frontend cleanup even if backend fails
-        }
-    }
-    
-    // Clear frontend state and UI
+    // Keep the old session in the past chats list — just start a fresh UI session
     await createNewSession();
+    loadPastChats();
 }
 
 async function createNewSession() {
@@ -239,6 +225,72 @@ async function loadCourseStats() {
         if (courseTitles) {
             courseTitles.innerHTML = '<span class="error">Failed to load courses</span>';
         }
+    }
+}
+
+// Past Chats Functions
+
+async function loadPastChats() {
+    try {
+        const response = await fetch(`${API_URL}/sessions`);
+        if (!response.ok) throw new Error('Failed to load past chats');
+
+        const data = await response.json();
+        const sessions = data.sessions;
+
+        if (!pastChatsListEl) return;
+
+        if (!sessions || sessions.length === 0) {
+            pastChatsListEl.innerHTML = '<span class="no-chats">No past chats yet</span>';
+            return;
+        }
+
+        // Render newest first
+        const sorted = [...sessions].reverse();
+        pastChatsListEl.innerHTML = sorted.map(session => {
+            const date = new Date(session.created_at);
+            const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            const isActive = session.session_id === currentSessionId ? ' active' : '';
+            const summaryPreview = session.summary ? escapeHtml(session.summary.slice(0, 100)) + (session.summary.length > 100 ? '…' : '') : '';
+            return `
+                <div class="past-chat-item${isActive}" id="chat-${session.session_id}">
+                    <div class="past-chat-info" onclick="resumeSession('${session.session_id}')">
+                        <span class="past-chat-title">${escapeHtml(session.title)}</span>
+                        <span class="past-chat-date">${dateStr} ${timeStr}</span>
+                        ${summaryPreview ? `<span class="past-chat-summary">${summaryPreview}</span>` : ''}
+                    </div>
+                    <button class="past-chat-delete" title="Delete chat" onclick="deleteSession('${session.session_id}')">×</button>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading past chats:', error);
+    }
+}
+
+function resumeSession(sessionId) {
+    currentSessionId = sessionId;
+    chatMessages.innerHTML = '';
+    addMessage('Resuming previous chat — continue your conversation below.', 'assistant', null, null, true);
+    // Highlight the active item
+    document.querySelectorAll('.past-chat-item').forEach(el => el.classList.remove('active'));
+    const activeEl = document.getElementById(`chat-${sessionId}`);
+    if (activeEl) activeEl.classList.add('active');
+    chatInput.focus();
+}
+
+async function deleteSession(sessionId) {
+    try {
+        await fetch(`${API_URL}/sessions/${sessionId}`, { method: 'DELETE' });
+        if (currentSessionId === sessionId) {
+            currentSessionId = null;
+            chatMessages.innerHTML = '';
+            addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, null, true);
+        }
+        loadPastChats();
+    } catch (error) {
+        console.error('Error deleting session:', error);
     }
 }
 

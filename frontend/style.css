@@ -590,7 +590,8 @@ header h1 {
 
 /* Sidebar Headers */
 .stats-header,
-.suggested-header {
+.suggested-header,
+.chats-header {
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--text-secondary);
@@ -606,22 +607,26 @@ header h1 {
 }
 
 .stats-header:focus,
-.suggested-header:focus {
+.suggested-header:focus,
+.chats-header:focus {
     color: var(--primary-color);
 }
 
 .stats-header:hover,
-.suggested-header:hover {
+.suggested-header:hover,
+.chats-header:hover {
     color: var(--primary-color);
 }
 
 .stats-header::-webkit-details-marker,
-.suggested-header::-webkit-details-marker {
+.suggested-header::-webkit-details-marker,
+.chats-header::-webkit-details-marker {
     display: none;
 }
 
 .stats-header::before,
-.suggested-header::before {
+.suggested-header::before,
+.chats-header::before {
     content: '▶';
     display: inline-block;
     margin-right: 0.5rem;
@@ -630,8 +635,94 @@ header h1 {
 }
 
 details[open] .stats-header::before,
-details[open] .suggested-header::before {
+details[open] .suggested-header::before,
+details[open] .chats-header::before {
     transform: rotate(90deg);
+}
+
+/* Past Chats List */
+.past-chats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.past-chat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s ease;
+    text-align: left;
+    gap: 0.5rem;
+}
+
+.past-chat-item:hover {
+    background: var(--surface-hover);
+    border-color: var(--primary-color);
+}
+
+.past-chat-item.active {
+    border-color: var(--primary-color);
+    background: var(--surface-hover);
+}
+
+.past-chat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    overflow: hidden;
+    flex: 1;
+}
+
+.past-chat-title {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.past-chat-date {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.past-chat-summary {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-top: 0.15rem;
+    white-space: normal;
+}
+
+.past-chat-delete {
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.1rem 0.25rem;
+    font-size: 1rem;
+    line-height: 1;
+    border-radius: 4px;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.past-chat-delete:hover {
+    color: #ef4444;
+}
+
+.no-chats {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-style: italic;
 }
 
 /* Course Stats in Sidebar */

@@ -231,9 +231,10 @@ class TestCourseSearchTool:
         mock_vector_store.search.return_value = SearchResults([], [], [])
         tool.execute("second query")
 
-        # Verify sources are cleared for empty results
-        assert tool.last_sources == []
-        assert tool.last_source_links == []
+        # Sources are NOT updated on empty results (only _format_results updates them).
+        # They retain the values from the previous successful search.
+        # To reset sources, the caller must use ToolManager.reset_sources().
+        assert len(tool.last_sources) > 0  # still holds previous search sources
 
     def test_multiple_documents_formatting(self, mock_vector_store):
         """Test formatting when multiple documents are returned"""

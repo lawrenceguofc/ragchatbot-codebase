@@ -176,7 +176,6 @@ def test_config():
         CHUNK_SIZE=800,
         CHUNK_OVERLAP=100,
         MAX_RESULTS=5,  # Set to proper value, not 0
-        MAX_HISTORY=2,
         CHROMA_PATH="./test_chroma_db",
     )
 
@@ -191,7 +190,6 @@ def broken_config():
         CHUNK_SIZE=800,
         CHUNK_OVERLAP=100,
         MAX_RESULTS=0,  # This is the broken setting
-        MAX_HISTORY=2,
         CHROMA_PATH="./test_chroma_db",
     )
 

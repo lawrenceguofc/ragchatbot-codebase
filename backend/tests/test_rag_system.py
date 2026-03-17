@@ -124,19 +124,15 @@ class TestRAGSystem:
             # Assert
             assert response == "Follow-up response."
 
-            # Verify session history was used
-            mock_session.return_value.get_conversation_history.assert_called_once_with(
-                "session123"
-            )
+            # Verify session history was used (called twice: for initial history and current summary)
+            assert mock_session.return_value.get_conversation_history.call_count == 2
+            mock_session.return_value.get_conversation_history.assert_called_with("session123")
             call_args = mock_ai_gen.return_value.generate_response.call_args[1]
             assert call_args["conversation_history"] == "Previous conversation"
 
-            # Verify session was updated
-            mock_session.return_value.add_exchange.assert_called_once_with(
-                "session123",
-                "Answer this question about course materials: Follow up question",
-                "Follow-up response.",
-            )
+            # Verify session was updated via summarize_conversation + update_summary
+            mock_ai_gen.return_value.summarize_conversation.assert_called_once()
+            mock_session.return_value.update_summary.assert_called_once()
 
     def test_query_failed_scenario_max_results_zero(self, broken_config):
         """Test the 'query failed' scenario due to MAX_RESULTS=0"""
@@ -199,7 +195,7 @@ class TestRAGSystem:
 
             # Verify no session operations were called
             mock_session.return_value.get_conversation_history.assert_not_called()
-            mock_session.return_value.add_exchange.assert_not_called()
+            mock_session.return_value.update_summary.assert_not_called()
 
     def test_add_course_document_success(self, test_config, sample_course):
         """Test adding a single course document"""
@@ -280,10 +276,12 @@ class TestRAGSystem:
             patch("rag_system.SessionManager"),
             patch("os.path.exists") as mock_exists,
             patch("os.listdir") as mock_listdir,
+            patch("os.path.isfile") as mock_isfile,
         ):
 
             # Setup mocks
             mock_exists.return_value = True
+            mock_isfile.return_value = True
             mock_listdir.return_value = [
                 "course1.pdf",
                 "course2.txt",

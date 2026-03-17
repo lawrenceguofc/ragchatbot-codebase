@@ -96,7 +96,10 @@ Provide only the direct answer to what was asked.
                 api_params["tool_choice"] = {"type": "auto"}
 
             # Get response from Claude
-            response = self.client.messages.create(**api_params)
+            try:
+                response = self.client.messages.create(**api_params)
+            except anthropic.APIError as e:
+                return f"I'm unable to process your request right now. Please try again. (Error: {type(e).__name__})"
 
             # Handle tool execution if needed
             if response.stop_reason == "tool_use" and tool_manager:
@@ -116,8 +119,46 @@ Provide only the direct answer to what was asked.
             "system": system_content,
         }
 
-        final_response = self.client.messages.create(**final_params)
+        try:
+            final_response = self.client.messages.create(**final_params)
+        except anthropic.APIError as e:
+            return f"I'm unable to process your request right now. Please try again. (Error: {type(e).__name__})"
         return final_response.content[0].text
+
+    def summarize_conversation(
+        self, existing_summary: str, user_message: str, assistant_response: str
+    ) -> str:
+        """
+        Generate a concise rolling summary of the conversation so far.
+
+        Args:
+            existing_summary: The previous summary (empty string if first exchange)
+            user_message: The user's latest message
+            assistant_response: The assistant's latest response
+
+        Returns:
+            Updated summary string
+        """
+        prompt = f"""You are summarizing a conversation for memory purposes.
+
+Existing summary:
+{existing_summary or "None"}
+
+New exchange:
+User: {user_message}
+Assistant: {assistant_response}
+
+Write a concise updated summary (3-5 sentences) capturing the key topics discussed, questions answered, and any context needed to continue this conversation. Return only the summary text."""
+
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=200,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.content[0].text
+        except Exception:
+            return existing_summary
 
     def _handle_tool_execution(self, initial_response, messages: List, tool_manager):
         """

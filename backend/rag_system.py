@@ -25,7 +25,7 @@ class RAGSystem:
         self.ai_generator = AIGenerator(
             config.ANTHROPIC_API_KEY, config.ANTHROPIC_MODEL
         )
-        self.session_manager = SessionManager(config.MAX_HISTORY)
+        self.session_manager = SessionManager()
 
         # Initialize search tools
         self.tool_manager = ToolManager()
@@ -155,9 +155,17 @@ class RAGSystem:
         # Reset sources after retrieving them
         self.tool_manager.reset_sources()
 
-        # Update conversation history
+        # Update conversation summary
         if session_id:
-            self.session_manager.add_exchange(session_id, query, response)
+            current_summary = self.session_manager.get_conversation_history(session_id) or ""
+            # Set title from the first user message
+            if not current_summary:
+                title = query[:50] + ("..." if len(query) > 50 else "")
+                self.session_manager.set_title(session_id, title)
+            new_summary = self.ai_generator.summarize_conversation(
+                current_summary, query, response
+            )
+            self.session_manager.update_summary(session_id, new_summary)
 
         # Return response with sources and links from tool searches
         return response, sources, source_links

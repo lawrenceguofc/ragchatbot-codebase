@@ -63,6 +63,21 @@ class ClearSessionRequest(BaseModel):
     session_id: str
 
 
+class SessionInfo(BaseModel):
+    """Metadata for a single past chat session"""
+
+    session_id: str
+    title: str
+    created_at: str
+    summary: str
+
+
+class SessionListResponse(BaseModel):
+    """Response model for listing past sessions"""
+
+    sessions: List[SessionInfo]
+
+
 # API Endpoints
 
 
@@ -107,6 +122,26 @@ async def clear_session(request: ClearSessionRequest):
     try:
         rag_system.session_manager.clear_session(request.session_id)
         return {"status": "success", "message": "Session cleared successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/sessions", response_model=SessionListResponse)
+async def list_sessions():
+    """List all past chat sessions"""
+    try:
+        sessions = rag_system.session_manager.get_all_sessions()
+        return SessionListResponse(sessions=[SessionInfo(**s) for s in sessions])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a specific chat session"""
+    try:
+        rag_system.session_manager.delete_session(session_id)
+        return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
